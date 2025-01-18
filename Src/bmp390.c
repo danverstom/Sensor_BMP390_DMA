@@ -321,7 +321,7 @@ HAL_StatusTypeDef BMP390_ReadPressureAndTemperature_DMA()
 
     printf("DMA request sent\n\r");
 
-    printf("Pressure: %d, Temperature: %d\n\r", (int)temperature, (int)pressure);
+    printf("Pressure: %d, Temperature: %d\n\r", (int)pressure, (int)temperature);
 
     return i2c_status;
 }
