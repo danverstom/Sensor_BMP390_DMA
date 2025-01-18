@@ -17,8 +17,8 @@
   */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef INCLUDE_GUARD_DRIVERS_STM32F1XX_HAL_DRIVER_INC_STM32F1XX_HAL_DMA
-#define INCLUDE_GUARD_DRIVERS_STM32F1XX_HAL_DRIVER_INC_STM32F1XX_HAL_DMA
+#ifndef __STM32F1xx_HAL_DMA_H
+#define __STM32F1xx_HAL_DMA_H
 
 #ifdef __cplusplus
  extern "C" {
@@ -451,5 +451,5 @@ uint32_t HAL_DMA_GetError(DMA_HandleTypeDef *hdma);
 }
 #endif
 
-#endif /* INCLUDE_GUARD_DRIVERS_STM32F1XX_HAL_DRIVER_INC_STM32F1XX_HAL_DMA */
+#endif /* __STM32F1xx_HAL_DMA_H */
 

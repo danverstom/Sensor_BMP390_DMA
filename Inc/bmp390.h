@@ -36,7 +36,7 @@ float BMP390_CompensatePressure(uint32_t uncomp_press, float t_lin);
 
 HAL_StatusTypeDef BMP390_ReadPressureAndTemperature(float *pressure, float *temperature);
 
-HAL_StatusTypeDef BMP390_ReadPressureAndTemperature_IT();
+HAL_StatusTypeDef BMP390_ReadPressureAndTemperature_DMA();
 
 #endif //BMP390_H
 

@@ -50,14 +50,8 @@ uint8_t chip_id_interrupt_test;
 
 uint8_t data[6] = {0};
 
-enum BMP390_InterruptStatus
-{
-    CHIP_ID,
-    PRESSURE_TEMPERATURE_DATA
-} interrupt_status;
-
-float *temperature_output = 0;
-float *pressure_output = 0;
+float temperature = 0;
+float pressure = 0;
 
 void BMP390_Init(I2C_HandleTypeDef *hi2c)
 {
@@ -203,14 +197,6 @@ void BMP390_Init(I2C_HandleTypeDef *hi2c)
     }
     printf("BMP390_Init: ODR settings updated (%x)\n\r", odr_sel);
 
-    // configure interrupt settings
-    // uint8_t int_ctrl_setting = 0b01000010;
-    // i2c_status = BMP390_Write(BMP390_REG_INT_CTRL, &int_ctrl_setting, 1);
-    // if (i2c_status != HAL_OK) {
-    //     printf("BMP390_Init: Failed to set INT_CTRL setting\n\r");
-    // }
-    // printf("BMP390_Init: INT_CTRL settings updated\n\r");
-
     // TODO: Learn how to use DMA to do the read/write in an optimised way
 
     uint8_t pwr_ctrl, osr, config, odr;
@@ -220,7 +206,7 @@ void BMP390_Init(I2C_HandleTypeDef *hi2c)
     BMP390_Read(BMP390_REG_ODR, &odr, 1);
     printf("PWR_CTRL: 0x%02X, OSR: 0x%02X, CONFIG: 0x%02X, ODR: 0x%02X\n\r", pwr_ctrl, osr, config, odr);
 
-        // set the desired power mode (normal mode with pressure and temperature measurement enabled)
+    // set the desired power mode (normal mode with pressure and temperature measurement enabled)
     uint8_t desired_power_mode = 0b00110011;
     i2c_status = BMP390_Write(BMP390_REG_PWR_CTRL, &desired_power_mode, 1);
 
@@ -241,18 +227,6 @@ void BMP390_Init(I2C_HandleTypeDef *hi2c)
     printf("BMP390_Init: Power mode updated to Normal Mode\n\r");
 
     printf("BMP390_Init: Finished\n\r");
-
-    // // experiment: non-blocking interrupt to read the chip ID
-    // i2c_status = HAL_I2C_Mem_Read_IT(hi2c, BMP390_I2C_ADDRESS, BMP390_REG_CHIP_ID,
-    //                                  I2C_MEMADD_SIZE_8BIT, &chip_id_interrupt_test, 1);
-
-    // if (i2c_status != HAL_OK) {
-    //     printf("BMP390_Init: Failed to read chip ID\n\r");
-    //     return;
-    // }
-
-    // interrupt_status = CHIP_ID;
-    // printf("Request to read Chip ID sent\n\r");
 }
 
 HAL_StatusTypeDef BMP390_Read(uint16_t MemAddress, uint8_t *pData, uint16_t Size)
@@ -338,33 +312,33 @@ HAL_StatusTypeDef BMP390_ReadPressureAndTemperature(float *pressure, float *temp
     return i2c_status;
 }
 
-HAL_StatusTypeDef BMP390_ReadPressureAndTemperature_IT()
+HAL_StatusTypeDef BMP390_ReadPressureAndTemperature_DMA()
 {
-    i2c_status = HAL_I2C_Mem_Read_IT(bmp390_i2c_handle, BMP390_I2C_ADDRESS, 0x04,
-                                     I2C_MEMADD_SIZE_8BIT, data, 6);
-    interrupt_status = PRESSURE_TEMPERATURE_DATA;
+    printf("Starting DMA request\n\r");
+
+    uint32_t start = HAL_GetTick();
+    i2c_status = HAL_I2C_Mem_Read_DMA(bmp390_i2c_handle, BMP390_I2C_ADDRESS, 0x04, I2C_MEMADD_SIZE_8BIT, data, 6);
+
+    printf("DMA request sent\n\r");
+
+    printf("Pressure: %d, Temperature: %d\n\r", (int)temperature, (int)pressure);
+
     return i2c_status;
 }
 
-// void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c) {
-//     if (hi2c == bmp390_i2c_handle) {
-//         switch (interrupt_status) {
-//             case PRESSURE_TEMPERATURE_DATA:
-//                 if (i2c_status != HAL_OK) {
-//                     break;
-//                 }
-//                 // printf("Got pressure data interrupt\n\r");
-//                 const uint32_t uncomp_press = data[2] << 16 | data[1] << 8 | data[0];
-//                 const uint32_t uncomp_temp = data[5] << 16 | data[4] << 8 | data[3];
+void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c)
+{
+    if (hi2c == bmp390_i2c_handle)
+    {
+        const uint32_t uncomp_press = data[2] << 16 | data[1] << 8 | data[0];
+        const uint32_t uncomp_temp = data[5] << 16 | data[4] << 8 | data[3];
 
-//                 float temp = BMP390_CompensateTemperature(uncomp_temp);
-//                 float press = BMP390_CompensatePressure(uncomp_press, temp);
+        temperature = BMP390_CompensateTemperature(uncomp_temp);
+        pressure = BMP390_CompensatePressure(uncomp_press, temperature);
+    }
+}
 
-//                 printf("(Hello from interrupt!) BMP390      Pressure: %.5f      Temperature: %.5f\n\r", press, temp);
-//             break;
-//             case CHIP_ID:
-//                 ;
-//                 // printf("Chip ID: %x\n\r", chip_id_interrupt_test);
-//         }
-//     }
-// }
+void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
+{
+    printf("I2C DMA error!");
+}

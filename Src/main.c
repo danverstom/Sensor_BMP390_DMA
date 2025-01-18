@@ -109,6 +109,7 @@ int main(void)
   BMP390_Init(&hi2c1);
 
   uint8_t i2c_rx_buffer[6] = {0};
+  uint8_t i2c_rx_buffer2[6] = {0};
 
   /* USER CODE END 2 */
 
@@ -118,24 +119,23 @@ int main(void)
   float pressure = 0;
   float temperature = 0;
 
+  // give the sensor time to start up
+  HAL_Delay(500);
+
   while (1)
   {
     HAL_GPIO_TogglePin(USER_LED1_GPIO_Port, USER_LED1_Pin);
     
 
-    BMP390_ReadPressureAndTemperature(&pressure, &temperature); 
+    // BMP390_ReadPressureAndTemperature(&pressure, &temperature);
 
-    printf("Pressure: %d, Temperature: %d\n\r", (int) pressure, (int) temperature);
+    // printf("Pressure: %d, Temperature: %d\n\r", (int) pressure, (int) temperature);
 
-
-    printf("Starting DMA transfer\n\r");
-    HAL_I2C_Mem_Read_DMA(&hi2c1, BMP390_I2C_ADDRESS, 0x04, I2C_MEMADD_SIZE_8BIT, i2c_rx_buffer, 6);
-
-    printf("Polling for transfer completion\n\r");
-    HAL_DMA_PollForTransfer(&hdma_i2c1_rx, HAL_DMA_FULL_TRANSFER, HAL_MAX_DELAY);
-    printf("DMA transfer complete!\n\r");
+    BMP390_ReadPressureAndTemperature_DMA();
 
     HAL_Delay(1000);
+
+    continue;
 
     /* USER CODE END WHILE */
 
